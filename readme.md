@@ -1,12 +1,12 @@
 # Shreyas
 
-Shreyas is an educational platform focused on computer science topics. The project aims to combine curated learning content, interactive tutoring, quizzes, and coding exercises into a single learning experience.
+Shreyas is an educational platform focused primarily on computer science topics. The project aims to combine curated learning content, interactive tutoring, quizzes, and coding exercises into a single learning experience.
 
 ## Overview
 
 The application will gather learning material from open-source books, tutorials, and other high-quality educational resources. It will present each topic in a structured way, including:
 
-- Concept summaries
+- Concept summaries (text and video)
 - AI-assisted explanations and doubt clearing
 - Practice quizzes
 - Coding problems at multiple difficulty levels
