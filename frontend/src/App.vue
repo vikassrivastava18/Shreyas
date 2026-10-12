@@ -42,10 +42,10 @@ import NavComponent from './components/NavComponent.vue';
     }
 
     #routeContent {
-        border: 1px dotted #4d4a4a;
+        border: 1px dotted blue;
         border-radius: 10px;
         min-height: 80vh;
-        background-color: #f3f3f3;       
+        background-color: #f9fbf8;       
     }
 
 </style>

@@ -20,8 +20,7 @@
 nav {
     text-align: left;
     border-radius: 5px;
-    background: linear-gradient(90deg, #dcdfe2 0%, #5e98cb 50%, #3f82bd 100%);
-}
+    background: linear-gradient(90deg, #fff 0%, #d3e2ef 50%, #e5adad 100%);}
 
 .nav-link {
     margin-right: 10px;
