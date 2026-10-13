@@ -1,0 +1,28 @@
+{
+  "mcq": [
+    {
+      "question": "What is the main purpose of Git branches?",
+      "options": [
+        "To delete commits",
+        "To allow independent development of features",
+        "To compress repositories",
+        "To track bugs"
+      ],
+      "answer": "To allow independent development of features",
+      "explanation": "Branches allow developers to work on different features without affecting the main branch."
+    }
+  ],
+  "true_false": [
+    {
+      "question": "Branches can be merged back into the main branch.",
+      "answer": true,
+      "explanation": "Git supports merging branches into the main branch."
+    }
+  ],
+  "fill_blank": [
+    {
+      "question": "Git ______ allow developers to work on features independently.",
+      "answer": "branches"
+    }
+  ]
+}
