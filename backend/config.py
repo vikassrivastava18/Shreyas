@@ -39,6 +39,7 @@ groq_key = os.getenv("GROQ_KEY")
 GROQ = os.getenv("LLAMA_MODEL")
 GPT = os.getenv("GPT_MODEL")
 NANO = os.getenv("GPT_NANO")
+JEV = os.getenv("OPENROUTER_API_KEY")
 
 
 # Method for session creation used with dependency injection

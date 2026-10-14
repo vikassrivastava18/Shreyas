@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 
 from typing import Literal
@@ -7,8 +9,9 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END, MessagesState
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import interrupt
+import requests
 
-from config import llm2 as llm, llm_nano
+from config import llm2 as llm, llm_nano, JEV
 from utils.agent.schemas import DialogueState, QuizSchema
 
 load_dotenv(override=True)
@@ -16,7 +19,7 @@ checkpointer = InMemorySaver()
 
 
 class IntentSchema(BaseModel):
-    intent: Literal["hint", "clear"]
+    intent: Literal["clarify", "clear"]
 
 
 class DialogueGraph:
@@ -41,17 +44,14 @@ class DialogueGraph:
         concept_prompt = f"""
         Prepare a summary on the topic. Use notes for preparing summary and
         context information as overall context while preparing the conceptual summary.
-        Wrap the output in HTML tags like <p>, <i>, but do not introduce unnecessary header tags like
-        <header>, <html>, <body>.
+        Return text in markdown format.
     
         Topic: {state["dialogues"][state["index"]]["topic"]}
         Notes: {state["dialogues"][state["index"]]["notes"]}
         Context: {context}
     
         End the output with something like "<p><b>Do you have any doubts?</b></p>".
-        Output Sample (Follow format strictly!!): 
-            <b>Topic</b>  <p>How to get rich in 100 days?</p> <p>There are many ways, best
-            path is to work hard....</p>
+        Return text in markdown format.
         """
         summary = llm.invoke(concept_prompt).content
 
@@ -70,33 +70,50 @@ class DialogueGraph:
         return state
 
     @staticmethod
-    def reply_intent(state: DialogueState) -> Literal["hint", "clear"]:
-
+    def reply_intent(state: DialogueState) -> Literal["clarify", "clear"]:
         user_reply = state["dialogues"][state["index"]]["messages"][-1].content
 
-        intent_prompt = f"""
-        Look at the user's latest reply and determine the intent.
-    
-        Return:
-        - "hint" -> if the user is confused or wants more clarity
-        - "clear" -> if the user understands the concept. For a reply like "No", "Nopes" or similar, takes it that 
-        the user is clear on the topic
-    
-        User Reply:
-        {user_reply}
-        """
-        structured_llm = llm_nano.with_structured_output(IntentSchema)
-        response = structured_llm.invoke(intent_prompt)
-        state["dialogues"][state["index"]]["state"] = response.intent
-        return response.intent
+        response = requests.post(
+            "https://openrouter.ai/api/alpha/decisions",
+            headers={
+                "Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "typesafe/jev-1.13",
+                "state": {
+                    "topic": state["dialogues"][state["index"]]["topic"],
+                    "user_reply": user_reply,
+                },
+                "questions": {
+                    "needs_clarity": {
+                        "type": "noul",
+                        "instructions": (
+                            "Determine whether the student is asking for clarity "
+                            "on the topic. Replies like 'no' or 'nopes' mean they "
+                            "understand and do not need clarity."
+                        ),
+                        "criteria": {
+                            "true": "The student is unsure and needs clarification.",
+                            "false": "The student understands the topic.",
+                        },
+                    }
+                },
+            },
+        )
+        response.raise_for_status()
 
+        needs_clarity = response.json()["answers"]["needs_clarity"]["noul"] > 0.5
+        print("JSON response: ", response.json())
+        intent = "clarify" if needs_clarity else "clear"
+        state["dialogues"][state["index"]]["state"] = intent
+        print("Intent: ", intent)
+        return intent
+    
     @staticmethod
     def clarify_doubt(state: DialogueState) -> DialogueState:
         clarify_prompt = f"""Look at the past converstaion on a topic and latest user's reply to clarify user's doubts.
-        Wrap the output in HTML tags like <p>, <i>, but do not introduce unnecessary header tags like
-        <header>, <html>, <body>. End with - still any doubts?
-        Output Sample:  <p>There are many ways, best
-        path is to <b>work hard</b>....</p>
+        Return text in markdown format.
         """
         system_message = AIMessage(content=clarify_prompt)
         messages = [system_message] + state["dialogues"][state["index"]]["messages"]
@@ -158,7 +175,7 @@ class DialogueGraph:
         builder.add_conditional_edges(
             "get_user_reply",
             DialogueGraph.reply_intent,
-            {"hint": "clarify_doubt", "clear": "prepare_quiz"},
+            {"clarify": "clarify_doubt", "clear": "prepare_quiz"},
         )
         builder.add_edge("clarify_doubt", "get_user_reply")
         builder.add_edge("prepare_quiz", "quiz_response")
