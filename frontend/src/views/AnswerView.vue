@@ -11,7 +11,7 @@
         </div>
 
         <div class="container">
-            <p v-html="message" class="p-4 mb-5"></p>
+            <div v-html="renderMarkdownToHtml" class="p-4 mb-5"></div>
             <div v-if="aiLoading" class="d-flex justify-content-center mt-4">
                 <div class="spinner-grow text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
@@ -25,7 +25,8 @@
 </template>
 
 <script setup>
-import { ref, getCurrentInstance } from 'vue'
+import { ref, getCurrentInstance, computed } from 'vue'
+import { marked } from 'marked'
 import { baseUrl } from '../config'
 import SelectComponent from '@/components/SelectComponent.vue';
 
@@ -40,6 +41,8 @@ const message = ref("");
 const userInput = ref("");
 const inputDisabled = ref(true)
 
+const renderMarkdownToHtml = computed(() => marked.parse(message.value))
+
 
 async function fetchDialogue(chapterId) {
     aiLoading.value = true
@@ -47,7 +50,7 @@ async function fetchDialogue(chapterId) {
         const res = await proxy.$axios.post(startDialogueUrl, { "chapter_id": chapterId })
         dialogue.value = res.data
 
-        message.value = `🚀<b>Welcome</b>, <p>${dialogue.value.question}</p>`
+        message.value = `🚀<b>Welcome</b>, ${dialogue.value.question}`
         aiLoading.value = false;
         inputDisabled.value = false;
     } catch(e) {
@@ -61,7 +64,7 @@ async function fetchDialogue(chapterId) {
 async function reviewAnswer() {
     // Display user response in UI
     dialogue.value["user_answer"] = userInput.value;
-    message.value += `<b>Your Response</b><br> <p> ${userInput.value} </p>`
+    message.value += `<b>Your Response</b><br> ${userInput.value} <br>`
 
     // prepare a plain JSON payload 
     const payload = { "answer": userInput.value, "session_id": dialogue.value.session_id }
@@ -72,7 +75,7 @@ async function reviewAnswer() {
         const res = await proxy.$axios.post(answerReviewUrl, payload)
         console.log('Review response:', res.data)
         const evaluation = res.data
-        message.value += `<b>AI</b> <br> <p> ${evaluation["response"]}  </p>`
+        message.value += `<b>AI</b> <br> ${evaluation["response"]}`
 
         if (evaluation.complete) {
             inputDisabled.value = true

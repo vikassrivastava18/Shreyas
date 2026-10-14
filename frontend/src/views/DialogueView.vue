@@ -14,7 +14,7 @@
                 <QuizComponent :quizzes="quizzes" @next-summary="nextTopic" />
                 
             </div>
-            <p v-else v-html="message" class="p-4"></p>
+            <p v-else v-html="renderedMessage" class="p-4"></p>
             <div v-if="aiLoading" class="d-flex justify-content-center mt-4">
                 <div class="spinner-grow text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
@@ -23,14 +23,14 @@
             <input class="form-control py-2 my-2" id="askInput" 
                 v-model="userInput" placeholder="Enter your answer here..."
                 @keyup.enter="sendResponse" :hidden="inputDisabled"
-                v-if="!quizMode">
-            
+                v-if="!quizMode">            
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, getCurrentInstance } from 'vue'
+import { ref, computed, getCurrentInstance } from 'vue'
+import { marked } from 'marked'
 import { baseUrl } from '../config'
 import QuizComponent from '../components/QuizComponent.vue'
 import SelectComponent from '@/components/SelectComponent.vue'
@@ -48,6 +48,9 @@ const userInput = ref("");
 const inputDisabled = ref(true)
 const quizMode = ref(false)
 const quizzes = ref({})
+
+const renderedMessage = computed(() => marked.parse(message.value))
+
 
 async function fetchDialogue(chapterId) {
     aiLoading.value = true
@@ -129,5 +132,4 @@ async function nextTopic() {
     #chapterSelect {
         min-width: 20vw;
     }
-
 </style>
