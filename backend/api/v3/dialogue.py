@@ -102,6 +102,7 @@ def review_response(request: AnswerSchema):
                 detail=f"Internal server error"
                 )
 
+
 @dialogue_routes.post("/next-topic")
 def next_topic(request: NextTopicSchema):
     try:
