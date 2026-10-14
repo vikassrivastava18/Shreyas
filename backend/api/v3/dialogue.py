@@ -2,7 +2,7 @@ from fastapi import  Depends, APIRouter, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 
 from langgraph.types import Command
-from utils.agent.graph import Graph
+from utils.agent.graph import DialogueGraph
 from utils.common.common import get_uuid_string
 
 from config import Session, get_db, logger
@@ -34,7 +34,7 @@ def start_dialogue(request: ChapterInputRequest, db: Session = Depends(get_db)):
             for subtopic in chapter.subtopics
         ]
 
-        graph = Graph.build_graph()
+        graph = DialogueGraph.build_graph()
         random_id = get_uuid_string()
         config = {"configurable": {"thread_id": random_id}}
         dialogues = {"index": -1, "dialogues": topics}
@@ -61,7 +61,7 @@ def review_response(request: AnswerSchema):
         session_id = request.session_id
         user_answer = request.answer
         config = {"configurable": {"thread_id": session_id}}
-        graph = Graph.build_graph()
+        graph = DialogueGraph.build_graph()
 
         result = graph.stream(Command(resume=user_answer), 
                             config)
@@ -106,7 +106,7 @@ def next_topic(request: NextTopicSchema):
     try:
         session_id = request.session_id
         config = {"configurable": {"thread_id": session_id}}
-        graph = Graph.build_graph()
+        graph = DialogueGraph.build_graph()
 
         result = graph.stream(Command(resume="Let's continue"), config)
         graph_query = None

@@ -19,7 +19,7 @@ class IntentSchema(BaseModel):
     intent: Literal["hint", "clear"]
 
 
-class Graph:
+class DialogueGraph:
     @staticmethod
     def set_topic_index(state: DialogueState) -> DialogueState:
         state["index"] += 1
