@@ -8,11 +8,9 @@ from api.v3.dialogue import dialogue_routes
 from api.v3.ask import ask_routes
 from api.v3.answer import answer_routes
 
-
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
 origins = ["*"]
 
 app.add_middleware(
@@ -22,7 +20,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 load_dotenv()
 

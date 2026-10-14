@@ -9,7 +9,6 @@ from core.db.schemas import AnswerSchema, ChapterInputRequest
 
 from utils.agent.graph import AnswerGraph
 
-
 answer_routes = APIRouter()
 
 

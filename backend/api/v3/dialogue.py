@@ -55,6 +55,7 @@ def start_dialogue(request: ChapterInputRequest, db: Session = Depends(get_db)):
                 detail=f"Internal server error"
                 )
 
+
 @dialogue_routes.post("/review-response")
 def review_response(request: AnswerSchema):
     try:

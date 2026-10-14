@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 
 from typing import Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from langgraph.graph import StateGraph, END, MessagesState
@@ -93,12 +93,13 @@ class DialogueGraph:
     @staticmethod
     def clarify_doubt(state: DialogueState) -> DialogueState:
         clarify_prompt = f"""Look at the past converstaion on a topic and latest user's reply to clarify user's doubts.
-        Output format:  <p>There are many ways, best
-        path is to work hard....</p>
+        Wrap the output in HTML tags like <p>, <i>, but do not introduce unnecessary header tags like
+        <header>, <html>, <body>. End with - still any doubts?
+        Output Sample:  <p>There are many ways, best
+        path is to <b>work hard</b>....</p>
         """
         system_message = AIMessage(content=clarify_prompt)
         messages = [system_message] + state["dialogues"][state["index"]]["messages"]
-
         response = llm.invoke(messages).content
         state["dialogues"][state["index"]]["messages"].append(
             AIMessage(content=response)
@@ -117,11 +118,16 @@ class DialogueGraph:
         
         Content: {content}
         """
-
-        structured_llm = llm.with_structured_output(QuizSchema)
         messages = [SystemMessage(content=prompt)]
 
-        quizzes = structured_llm.invoke(messages)
+        for attempt in range(3):
+            structured_llm = llm.with_structured_output(QuizSchema)
+            try:
+                quizzes = QuizSchema.model_validate(structured_llm.invoke(messages))
+                break
+            except ValidationError:
+                if attempt == 2:
+                    raise
         state["dialogues"][state["index"]]["quizzes"] = quizzes
 
         return state
@@ -135,24 +141,23 @@ class DialogueGraph:
     @staticmethod
     def build_graph():
         builder = StateGraph(DialogueState)
-
-        builder.add_node("set_topic_index", Graph.set_topic_index)
-        builder.add_node("concept_summary", Graph.concept_summary)
-        builder.add_node("get_user_reply", Graph.get_user_reply)
-        builder.add_node("clarify_doubt", Graph.clarify_doubt)
-        builder.add_node("prepare_quiz", Graph.prepare_quiz)
-        builder.add_node("quiz_response", Graph.quiz_response)
+        builder.add_node("set_topic_index", DialogueGraph.set_topic_index)
+        builder.add_node("concept_summary", DialogueGraph.concept_summary)
+        builder.add_node("get_user_reply", DialogueGraph.get_user_reply)
+        builder.add_node("clarify_doubt", DialogueGraph.clarify_doubt)
+        builder.add_node("prepare_quiz", DialogueGraph.prepare_quiz)
+        builder.add_node("quiz_response", DialogueGraph.quiz_response)
 
         builder.set_entry_point("set_topic_index")
         builder.add_conditional_edges(
             "set_topic_index",
-            Graph.remaining,
+            DialogueGraph.remaining,
             {"remaining": "concept_summary", "complete": END},
         )
         builder.add_edge("concept_summary", "get_user_reply")
         builder.add_conditional_edges(
             "get_user_reply",
-            Graph.reply_intent,
+            DialogueGraph.reply_intent,
             {"hint": "clarify_doubt", "clear": "prepare_quiz"},
         )
         builder.add_edge("clarify_doubt", "get_user_reply")
@@ -208,7 +213,7 @@ class AnswerGraph:
         )
 
         question_prompt = f"""
-        You are an examiner whose job is to prepare a conceptual question (subjective) on a topic using the notes provided to you.
+        You are an examiner whose job is to prepare a conceptual question (subjective) on a topic using the notes.
         Topic: {topic}
         Notes: {notes}
         Keep the question simple, just to test a basic understanding. Do not provide the answer.
