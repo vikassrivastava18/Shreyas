@@ -1,7 +1,7 @@
 import './assets/base.css'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
-import axios from 'axios'
+// import axios from 'axios'
 import { createWebHistory, createRouter } from 'vue-router'
 import { createApp } from 'vue'
 
@@ -57,5 +57,5 @@ const router = createRouter({
 let app = createApp(App)
             .use(router)
 
-app.config.globalProperties.$axios = axios
+// app.config.globalProperties.$axios = axios
 app.mount('#app')
